@@ -2,8 +2,8 @@ package com.dev.yarulin.smstotime;
 
 
 import android.Manifest;
-import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
 import android.database.Cursor;
 import android.net.Uri;
 import android.support.v4.app.ActivityCompat;
@@ -15,19 +15,36 @@ import android.view.View;
 import android.widget.Toast;
 
 
+import com.dev.yarulin.smstotime.decorators.EventDecorator;
+import com.dev.yarulin.smstotime.models.DateFormatPattern;
+import com.dev.yarulin.smstotime.models.EventModel;
+import com.dev.yarulin.smstotime.models.SettingModel;
+import com.dev.yarulin.smstotime.models.SmsModel;
+import com.dev.yarulin.smstotime.storages.SettingsStorage;
+import com.prolificinteractive.materialcalendarview.CalendarDay;
 import com.prolificinteractive.materialcalendarview.MaterialCalendarView;
 
+import java.sql.Time;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class MainActivity extends AppCompatActivity {
 
-     private  final String TAG = "======MainActivity=======";
+    private static final Uri SMS_INBOX_CONTENT_URI = Uri.parse("content://sms/inbox");
+    private static final String SORT_ORDER = "date DESC";
+    private  final String TAG = "======MainActivity=======";
      private final int REQUEST_CODE_READ_SMS = 1;
       private MaterialCalendarView smsCal;
     private static boolean READ_SMS_GRANTED =false;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,32 +53,48 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         smsCal = (MaterialCalendarView) findViewById(R.id.calendarView);
         smsCal.setSelectionMode(MaterialCalendarView.SELECTION_MODE_NONE);
+        SettingsStorage.TestInit(getResources());
         Log.d(TAG,"onCreate end");
-
     }
-private int day = 20;
+
+    private int day = 19;
     public void OnTestClick(View view) {
         Log.d(TAG, "OnTestClick start");
-        day++;
-        Log.d(TAG, "Day=" + day);
-        Calendar c = Calendar.getInstance();
-        c.set(2017, 11, day);
-        //smsCal.setSelectedDate(c);
-        if(day%2==0){
-            smsCal.setSelectionColor(R.color.colorOne);
-        }else{
-            smsCal.setSelectionColor(R.color.colorTwo);
-        }
-
-        smsCal.setSelectedDate(c);
+//        day++;
+//        Log.d(TAG, "Day=" + day);
+//        Calendar c = Calendar.getInstance();
+//        c.set(2017, 11, day);
+//        //smsCal.setSelectedDate(c);
+//        if(day%2==0){
+//            smsCal.setSelectionColor(R.color.colorOne);
+//        }else{
+//            smsCal.setSelectionColor(R.color.colorTwo);
+//        }
+//
+//        smsCal.setSelectedDate(c);
+        /************************/
+//        Calendar c = Calendar.getInstance();
+//        ArrayList<CalendarDay> dates1 = new ArrayList<>();
+//        ArrayList<CalendarDay> dates2 = new ArrayList<>();
+//        Resources res = getResources();
+//
+//        for (int i = 0; i < 5; i++) {
+//            CalendarDay day = CalendarDay.from(c);
+//            if(i>2){
+//                dates1.add(day);
+//            }else{
+//                dates2.add(day);
+//            }
+//            c.add(Calendar.DATE, -2);
+//        }
+//        smsCal.addDecorators(new EventDecorator(
+//                getResources().getColor(R.color.colorOne,null),dates1),
+//                new EventDecorator(getResources().getColor(R.color.colorTwo,null),dates2));
         Log.d(TAG, "OnTestClick end");
     }
-
     public void OnTestReadClick(View view) {
         Log.d(TAG, "<-OnTestReadClick->");
         if(READ_SMS_GRANTED) {
-
-
             Cursor cursor = getContentResolver().query(Uri.parse("content://sms/inbox"), null, null, null, null);
 
             if (cursor.moveToFirst()) { // must check the result to prevent exception
@@ -81,7 +114,6 @@ private int day = 20;
         }
 
     }
-
     public void OnGetGrantClick(View view) {
         Log.d(TAG, "<-OnGetGrClick->");
         if(!READ_SMS_GRANTED){
@@ -100,6 +132,7 @@ private int day = 20;
         }
     }
 
+      /***********===========================================================================================****************/
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults){
         Log.d(TAG, "<-onRequestPermissionsResult->");
         switch (requestCode){
@@ -108,11 +141,136 @@ private int day = 20;
                     READ_SMS_GRANTED = true;
                 }
         }
+
         if(READ_SMS_GRANTED){
             Log.d(TAG, "Done! READ_SMS_GRANTED = true");
+            BuildHistory();
         }
         else{
             Toast.makeText(this, "Требуется установить разрешения", Toast.LENGTH_LONG).show();
         }
+    }
+
+    public void OnRun(View view) {
+        Log.d(TAG, "<-OnRun->");
+        if (!READ_SMS_GRANTED) {
+            int hasReadContactPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS);
+            if (hasReadContactPermission == PackageManager.PERMISSION_GRANTED) {
+                READ_SMS_GRANTED = true;
+                Log.d(TAG, "It's ok! READ_SMS_GRANTED = true");
+            } else {
+                // вызываем диалоговое окно для установки разрешений
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_SMS}, REQUEST_CODE_READ_SMS);
+            }
+        }
+        if (READ_SMS_GRANTED) {
+            BuildHistory();
+        }
+    }
+
+    private void BuildHistory(){
+        Log.d(TAG, "<-BuildHistory->");
+        List<SmsModel> allSms =  GetSms();
+
+
+        /*Build models*/
+        List<EventModel> events = new ArrayList<>();
+
+        for (SettingModel set : SettingsStorage.CURRENT.SETTINGS){
+            DateFormatPattern currentFormat = SettingsStorage.CURRENT.GetFormatById(set.getDatePatternId());
+            for(SmsModel sms: allSms){
+                if(sms.getAddress().equals(set.getAddress())){
+                    Date smsDate = GetDateFromSmsBody(currentFormat,sms);
+                    if(smsDate!=null) {
+                        EventModel event = null;
+                        if(events.stream().anyMatch(x->x.Equals(set.getSettingsId(),smsDate))){
+                            event = events.stream().filter(x->x.Equals(set.getSettingsId(),smsDate)).findFirst().get();
+                        }else {
+                            event = new EventModel(set.getSettingsId(), smsDate);
+                            events.add(event);
+                        }
+                        event.AddSms(sms);
+                    }
+                }
+            }
+        }
+        /*Draw decorators*/
+        List<EventDecorator> decorators = new ArrayList<>();
+        for (SettingModel set : SettingsStorage.CURRENT.SETTINGS){
+            EventDecorator dec = new EventDecorator(set.getSettingsId(),set.getColor());
+            Date[] eventDates =  events.stream().filter(x->x.getSettingsId() == set.getSettingsId()).map(x->x.getDateStamp()).toArray(Date[]::new);
+            for (Date d : eventDates){
+                dec.addDate(d);
+            }
+            if(eventDates.length>0){
+                decorators.add(dec);
+            }
+        }
+        smsCal.addDecorators(decorators);
+    }
+
+    private List<SmsModel> GetSms(){
+        Log.d(TAG, "<-GetSms->");
+
+        List<SmsModel> result = new ArrayList<>();
+        if (READ_SMS_GRANTED) {
+            Cursor cursor =  getContentResolver().query(
+                    SMS_INBOX_CONTENT_URI,
+                    new String[] { "_id", "thread_id", "address", "person", "date", "body" },
+                    null,
+                    null,
+                    SORT_ORDER);
+            int count = 0;
+            if (cursor != null) {
+                try {
+                    if (cursor.moveToFirst()) { // must check the result to prevent exception
+                        do {
+                            // String[] columns = cursor.getColumnNames();
+                            // for (int i=0; i<columns.length; i++) {
+                            // Log.v("columns " + i + ": " + columns[i] + ": " + cursor.getString(i));
+                            // }
+                            long messageId = cursor.getLong(0);
+                            long threadId = cursor.getLong(1);
+                            String address = cursor.getString(2);
+                            long contactId = cursor.getLong(3);
+                            String contactId_string = String.valueOf(contactId);
+                            long timestamp = cursor.getLong(4);
+                            String body = cursor.getString(5);
+
+                            SmsModel smsMessage = new SmsModel(messageId,contactId,address,timestamp,body);
+                            result.add(smsMessage);
+                        } while (cursor.moveToNext());
+                    } else {
+                        Log.d(TAG, "Empty box, no SMS");
+                    }
+                } finally {
+                    cursor.close();
+                }
+            }
+
+
+        }
+        return result;
+    }
+
+    private Date GetDateFromSmsBody(DateFormatPattern format, SmsModel sms) {
+        Date result = null;
+        DateFormat df = new SimpleDateFormat(format.getDesc());
+        if(sms!=null && sms.getBody()!=null) {
+            Matcher m = Pattern.compile(format.getRegexPattern()).matcher(sms.getBody());
+            while (m.find()) {
+                  String findObject = m.group();
+                  try{
+                      result =  df.parse(findObject);
+                      if(result!=null) {
+                          break;
+                      }
+                  }
+                  catch (ParseException pe) {
+                       Log.e(TAG,pe.getMessage());
+                  }
+            }
+        }
+        return result;
     }
 }

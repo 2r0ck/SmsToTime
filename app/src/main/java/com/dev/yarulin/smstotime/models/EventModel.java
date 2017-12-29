@@ -1,5 +1,6 @@
-package com.dev.yarulin.smstotime.decorators;
+package com.dev.yarulin.smstotime.models;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -12,13 +13,14 @@ public class EventModel {
     private final UUID settingsId;
     private final UUID eventId;
     Date dateStamp;
-    List<SmsModel> sms;
+    List<SmsModel> smss;
 
-    EventModel(UUID settingsId,Date dateStamp,List<SmsModel> sms ){
+    public EventModel(UUID settingsId, Date dateStamp) {
         this.settingsId = settingsId;
         this.dateStamp = dateStamp;
-        this.sms = sms;
+
         eventId = UUID.randomUUID();
+        smss = new ArrayList<>();
     }
 
     public UUID getSettingsId() {
@@ -31,5 +33,14 @@ public class EventModel {
 
     public Date getDateStamp() {
         return dateStamp;
+    }
+
+
+    public void AddSms(SmsModel sms){
+        smss.add(sms);
+    }
+
+    public boolean Equals(UUID setId,  Date dStamp){
+         return  setId == settingsId && dStamp ==dateStamp;
     }
 }

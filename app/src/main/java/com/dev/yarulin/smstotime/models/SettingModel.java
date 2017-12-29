@@ -1,4 +1,4 @@
-package com.dev.yarulin.smstotime.decorators;
+package com.dev.yarulin.smstotime.models;
 
 import java.util.UUID;
 
@@ -7,16 +7,17 @@ import java.util.UUID;
  */
 
 public class SettingModel {
-    private UUID GroupId;
+    private UUID settingsId;
     private String address;
     private int color;
-    private String dateTimeFormat;
+    private int datePatternId;
 
-    public SettingModel(int color, String address,String dateTimeFormat){
+
+    public SettingModel(int color, String address,int datePatternId){
         this.setColor(color);
         this.setAddress(address);
-        this.setDateTimeFormat(dateTimeFormat);
-        GroupId = UUID.randomUUID();
+        this.setDatePatternId(datePatternId);
+        settingsId = UUID.randomUUID();
     }
 
     public String getAddress() {
@@ -35,15 +36,16 @@ public class SettingModel {
         this.color = color;
     }
 
-    public String getDateTimeFormat() {
-        return dateTimeFormat;
+
+    public UUID getSettingsId() {
+        return settingsId;
     }
 
-    public void setDateTimeFormat(String dateTimeFormat) {
-        this.dateTimeFormat = dateTimeFormat;
+    public int getDatePatternId() {
+        return datePatternId;
     }
 
-    public UUID getGroupId() {
-        return GroupId;
+    public void setDatePatternId(int datePatternId) {
+        this.datePatternId = datePatternId;
     }
 }

@@ -46,8 +46,17 @@
         app:layout_constraintLeft_toRightOf="@+id/but_readSms"
         app:layout_constraintTop_toBottomOf="@id/calendarView"
         android:onClick="OnGetGrantClick"
+        android:id="@+id/getGrant"
         />
 
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Run"
+        app:layout_constraintLeft_toRightOf="@+id/but_test"
+        app:layout_constraintTop_toBottomOf="@id/but_test"
+        android:onClick="OnRun"
+        />
 
 
 </android.support.constraint.ConstraintLayout>

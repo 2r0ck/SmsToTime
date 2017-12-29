@@ -1,4 +1,4 @@
-package com.dev.yarulin.smstotime.decorators;
+package com.dev.yarulin.smstotime.models;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -49,12 +49,6 @@ public class SmsModel {
         return body;
     }
 
-    /* dd.MM.yyyy*/
-    public Date findDateInBody(String datePattern){
 
-        if(body!=null && !body.isEmpty()){
-            
-        }
-        return null;
-    }
+
 }
