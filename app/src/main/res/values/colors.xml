@@ -6,4 +6,7 @@
 
     <color name="colorOne">#42f4b3</color>
     <color name="colorTwo">#f441eb</color>
+
+
+    <color name="selectColor">#f9f475</color>
 </resources>

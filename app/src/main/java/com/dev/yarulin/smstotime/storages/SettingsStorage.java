@@ -33,8 +33,8 @@ public class SettingsStorage {
 
     private List<DateFormatPattern> GetFormats (){
         List<DateFormatPattern> formats = new ArrayList<>();
-        formats.add(new DateFormatPattern(1,"dd.MM.yyyy","[^\\d](0*[1-9]|[12][0-9]|3[01])[.](0*[1-9]|1[012])[.]((19|20)\\d\\d|\\d\\d)"));
-        formats.add(new DateFormatPattern(2,"MM/dd/yy","[^\\d](0*[1-9]|1[012])[/](0*[1-9]|[12][0-9]|3[01])[/]((19|20)\\d\\d|\\d\\d)"));
+        formats.add(new DateFormatPattern(1,"dd.MM.yyyy","(0*[1-9]|[12][0-9]|3[01])[.](0*[1-9]|1[012])[.]((19|20)\\d\\d|\\d\\d)"));
+        formats.add(new DateFormatPattern(2,"MM/dd/yy","(0*[1-9]|1[012])[/](0*[1-9]|[12][0-9]|3[01])[/]((19|20)\\d\\d|\\d\\d)"));
         return formats;
     }
 

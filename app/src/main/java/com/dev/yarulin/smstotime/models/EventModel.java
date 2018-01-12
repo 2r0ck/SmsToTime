@@ -35,12 +35,15 @@ public class EventModel {
         return dateStamp;
     }
 
+    public List<SmsModel> getMessages() {
+        return smss;
+    }
 
     public void AddSms(SmsModel sms){
         smss.add(sms);
     }
 
     public boolean Equals(UUID setId,  Date dStamp){
-         return  setId == settingsId && dStamp ==dateStamp;
+         return  setId.equals(settingsId) && dStamp.equals(dateStamp);
     }
 }

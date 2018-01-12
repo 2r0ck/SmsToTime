@@ -1,6 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent"
-    android:layout_height="match_parent">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:id="@+id/sms_container"
+    tools:background="@android:color/holo_blue_bright">
 
-</android.support.constraint.ConstraintLayout>
+    <TextView
+        android:id="@+id/textTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:textSize="25dp"
+        android:editable="false"/>
+    <ListView
+        android:id="@+id/sms_list"
+        android:layout_marginLeft="10dp"
+        android:background="@android:color/background_light"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        >
+    </ListView>
+    <!--android:layout_height="120dp"-->
+</LinearLayout>
+

@@ -5,6 +5,7 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.database.Cursor;
+import android.graphics.Color;
 import android.net.Uri;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -12,9 +13,14 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.ListAdapter;
+import android.widget.ListView;
 import android.widget.Toast;
 
 
+import com.dev.yarulin.smstotime.adapters.EventAdapter;
 import com.dev.yarulin.smstotime.decorators.EventDecorator;
 import com.dev.yarulin.smstotime.models.DateFormatPattern;
 import com.dev.yarulin.smstotime.models.EventModel;
@@ -41,8 +47,12 @@ public class MainActivity extends AppCompatActivity {
     private static final Uri SMS_INBOX_CONTENT_URI = Uri.parse("content://sms/inbox");
     private static final String SORT_ORDER = "date DESC";
     private  final String TAG = "======MainActivity=======";
-     private final int REQUEST_CODE_READ_SMS = 1;
-      private MaterialCalendarView smsCal;
+    private final int REQUEST_CODE_READ_SMS = 1;
+    private MaterialCalendarView smsCal;
+    private List<EventModel> currentEvents = new ArrayList<>();
+
+    private List<EventModel> events;
+
     private static boolean READ_SMS_GRANTED =false;
 
 
@@ -52,11 +62,60 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         smsCal = (MaterialCalendarView) findViewById(R.id.calendarView);
-        smsCal.setSelectionMode(MaterialCalendarView.SELECTION_MODE_NONE);
+        smsCal.setSelectionMode(MaterialCalendarView.SELECTION_MODE_SINGLE);
+        smsCal.setSelectionColor(getResources().getColor(R.color.selectColor,null));
         SettingsStorage.TestInit(getResources());
+        Run();
+        EventAdapter ea = new EventAdapter(this,R.layout.sms_item,currentEvents,SettingsStorage.CURRENT.SETTINGS);
+        ListView eventList = (ListView) findViewById(R.id.eventList);
+        eventList.setAdapter(ea);
+
+        smsCal.setOnDateChangedListener((MaterialCalendarView widget, CalendarDay date, boolean selected) -> {
+            ea.clear();
+            Log.d(TAG, "<---onDateChanged--->" );
+            Log.d(TAG, "date: "+ date );
+            Log.d(TAG, "selected: "+ selected );
+            if(events!=null){
+                Log.d(TAG, "/*************/" );
+                for (EventModel ev : events){
+                    if(ev.getDateStamp().equals(date.getDate())){
+                        ev.getMessages().forEach(x->{
+                            Log.d("PHONE:"+x.getAddress(), x.getBody() );
+                        });
+                        //add ev
+                        ea.add(ev);
+                    }
+                }
+                Log.d(TAG, "/***********/" );
+            }
+
+            justifyListViewHeightBasedOnChildren(eventList);
+        });
+
+
         Log.d(TAG,"onCreate end");
     }
 
+    private static void justifyListViewHeightBasedOnChildren (ListView listView) {
+
+        ListAdapter adapter = listView.getAdapter();
+
+        if (adapter == null) {
+            return;
+        }
+        ViewGroup vg = listView;
+        int totalHeight = 0;
+        for (int i = 0; i < adapter.getCount(); i++) {
+            View listItem = adapter.getView(i, null, vg);
+            listItem.measure(0, 0);
+            totalHeight += listItem.getMeasuredHeight();
+        }
+
+        ViewGroup.LayoutParams par = listView.getLayoutParams();
+        par.height = totalHeight + (listView.getDividerHeight() * (adapter.getCount() - 1));
+        listView.setLayoutParams(par);
+        listView.requestLayout();
+    }
     private int day = 19;
     public void OnTestClick(View view) {
         Log.d(TAG, "OnTestClick start");
@@ -90,6 +149,9 @@ public class MainActivity extends AppCompatActivity {
 //        smsCal.addDecorators(new EventDecorator(
 //                getResources().getColor(R.color.colorOne,null),dates1),
 //                new EventDecorator(getResources().getColor(R.color.colorTwo,null),dates2));
+        String[] countries = { "Бразилия", "Аргентина", "Колумбия", "Чили", "Уругвай"};
+        ArrayAdapter<String> adapter = new ArrayAdapter(this,
+                android.R.layout.simple_list_item_1, countries);
         Log.d(TAG, "OnTestClick end");
     }
     public void OnTestReadClick(View view) {
@@ -153,6 +215,11 @@ public class MainActivity extends AppCompatActivity {
 
     public void OnRun(View view) {
         Log.d(TAG, "<-OnRun->");
+        Run();
+    }
+
+    private void Run(){
+        Log.d(TAG, "<-Run->");
         if (!READ_SMS_GRANTED) {
             int hasReadContactPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS);
             if (hasReadContactPermission == PackageManager.PERMISSION_GRANTED) {
@@ -172,9 +239,9 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "<-BuildHistory->");
         List<SmsModel> allSms =  GetSms();
 
-
+        Log.d(TAG, "<-events->");
         /*Build models*/
-        List<EventModel> events = new ArrayList<>();
+        events = new ArrayList<>();
 
         for (SettingModel set : SettingsStorage.CURRENT.SETTINGS){
             DateFormatPattern currentFormat = SettingsStorage.CURRENT.GetFormatById(set.getDatePatternId());
@@ -188,8 +255,10 @@ public class MainActivity extends AppCompatActivity {
                         }else {
                             event = new EventModel(set.getSettingsId(), smsDate);
                             events.add(event);
+                            Log.d(TAG, "Add  event:" + event.getSettingsId() + " " + new SimpleDateFormat("dd.MM.yyyy HH:mm:ss").format(event.getDateStamp()));
                         }
                         event.AddSms(sms);
+                        Log.d(TAG, sms.toString() + " event:" + event.getSettingsId() + " " + new SimpleDateFormat("dd.MM.yyyy HH:mm:ss").format(event.getDateStamp()));
                     }
                 }
             }
@@ -239,6 +308,7 @@ public class MainActivity extends AppCompatActivity {
 
                             SmsModel smsMessage = new SmsModel(messageId,contactId,address,timestamp,body);
                             result.add(smsMessage);
+                            Log.d(TAG, smsMessage.toString());
                         } while (cursor.moveToNext());
                     } else {
                         Log.d(TAG, "Empty box, no SMS");
